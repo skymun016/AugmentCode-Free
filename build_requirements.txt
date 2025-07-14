@@ -1,0 +1,4 @@
+# 打包所需的依赖
+click>=8.0.0
+colorama>=0.4.4
+pyinstaller>=5.0.0

@@ -1,0 +1,138 @@
+name: Build AugmentCode-Free
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            artifact_name: AugmentCode-Free-windows
+            executable_name: AugmentCode-Free.exe
+          - os: macos-latest
+            artifact_name: AugmentCode-Free-macos
+            executable_name: AugmentCode-Free.app
+          - os: ubuntu-latest
+            artifact_name: AugmentCode-Free-linux
+            executable_name: AugmentCode-Free
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'  # 使用3.11避免3.13的外部管理环境问题
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r build_requirements.txt
+
+    - name: Build executable (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        python build.py
+
+    - name: Build executable (macOS/Linux)
+      if: matrix.os != 'windows-latest'
+      run: |
+        python build.py
+
+    - name: Create distribution package
+      shell: bash
+      run: |
+        # 创建分发目录
+        mkdir -p release/${{ matrix.artifact_name }}
+        
+        # 复制可执行文件
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          cp dist/AugmentCode-Free.exe release/${{ matrix.artifact_name }}/
+        elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+          cp -r dist/AugmentCode-Free.app release/${{ matrix.artifact_name }}/
+        else
+          cp dist/AugmentCode-Free release/${{ matrix.artifact_name }}/
+          chmod +x release/${{ matrix.artifact_name }}/AugmentCode-Free
+        fi
+        
+        # 复制文档
+        cp README.md release/${{ matrix.artifact_name }}/
+        
+        # 创建使用说明
+        cat > release/${{ matrix.artifact_name }}/使用说明.txt << 'EOF'
+        # AugmentCode-Free 使用说明
+        
+        ## 运行方式
+        
+        ### Windows:
+        - 双击 AugmentCode-Free.exe 启动程序
+        
+        ### macOS:
+        - 双击 AugmentCode-Free.app 启动程序
+        - 如遇安全提示，请在系统偏好设置 > 安全性与隐私中允许运行
+        
+        ### Linux:
+        - 在终端中运行: ./AugmentCode-Free
+        - 确保文件有执行权限: chmod +x AugmentCode-Free
+        
+        ## 功能说明
+        
+        1. 清理数据库: 清理VS Code数据库中的augment相关条目
+        2. 修改遥测ID: 生成新的machineId和devDeviceId
+        3. 运行所有工具: 执行完整的清理流程
+        
+        ## 注意事项
+        
+        - 程序会自动备份原始文件
+        - 请确保VS Code已关闭再运行此工具
+        - 如遇问题，可查看备份文件进行恢复
+        
+        ## 支持
+        
+        如遇问题请访问: https://github.com/BasicProtein/AugmentCode-Free/issues
+        EOF
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: release/${{ matrix.artifact_name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      
+    - name: Create release archives
+      run: |
+        # 创建zip文件
+        cd AugmentCode-Free-windows && zip -r ../AugmentCode-Free-windows.zip . && cd ..
+        cd AugmentCode-Free-macos && zip -r ../AugmentCode-Free-macos.zip . && cd ..
+        cd AugmentCode-Free-linux && tar -czf ../AugmentCode-Free-linux.tar.gz . && cd ..
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          AugmentCode-Free-windows.zip
+          AugmentCode-Free-macos.zip
+          AugmentCode-Free-linux.tar.gz
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

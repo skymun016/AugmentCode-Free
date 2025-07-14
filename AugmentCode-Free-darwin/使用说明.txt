@@ -1,0 +1,26 @@
+# AugmentCode-Free 使用说明
+
+## 运行方式
+
+### Darwin:
+
+- 双击 `AugmentCode-Free.app` 启动程序
+- 或在终端中运行: `open AugmentCode-Free.app`
+
+## 功能说明
+
+1. **清理数据库**: 清理VS Code数据库中的augment相关条目
+2. **修改遥测ID**: 生成新的machineId和devDeviceId
+3. **运行所有工具**: 执行完整的清理流程
+
+## 注意事项
+
+- 程序会自动备份原始文件
+- 请确保VS Code已关闭再运行此工具
+- 如遇问题，可查看备份文件进行恢复
+
+## 支持的操作系统
+
+- Windows 10/11
+- macOS 10.14+
+- Linux (Ubuntu, CentOS等)

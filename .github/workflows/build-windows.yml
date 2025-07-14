@@ -1,0 +1,114 @@
+name: Build Windows Only
+
+on:
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a release'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r build_requirements.txt
+
+    - name: Build Windows executable
+      run: |
+        python build.py
+
+    - name: Create Windows distribution package
+      run: |
+        # 创建分发目录
+        mkdir release
+        mkdir release\AugmentCode-Free-windows
+        
+        # 复制可执行文件
+        copy dist\AugmentCode-Free.exe release\AugmentCode-Free-windows\
+        
+        # 复制文档
+        copy README.md release\AugmentCode-Free-windows\
+        
+        # 创建使用说明
+        echo # AugmentCode-Free Windows 使用说明 > release\AugmentCode-Free-windows\使用说明.txt
+        echo. >> release\AugmentCode-Free-windows\使用说明.txt
+        echo ## 运行方式 >> release\AugmentCode-Free-windows\使用说明.txt
+        echo - 双击 AugmentCode-Free.exe 启动程序 >> release\AugmentCode-Free-windows\使用说明.txt
+        echo - 或在命令行中运行: AugmentCode-Free.exe >> release\AugmentCode-Free-windows\使用说明.txt
+        echo. >> release\AugmentCode-Free-windows\使用说明.txt
+        echo ## 功能说明 >> release\AugmentCode-Free-windows\使用说明.txt
+        echo 1. 清理数据库: 清理VS Code数据库中的augment相关条目 >> release\AugmentCode-Free-windows\使用说明.txt
+        echo 2. 修改遥测ID: 生成新的machineId和devDeviceId >> release\AugmentCode-Free-windows\使用说明.txt
+        echo 3. 运行所有工具: 执行完整的清理流程 >> release\AugmentCode-Free-windows\使用说明.txt
+        echo. >> release\AugmentCode-Free-windows\使用说明.txt
+        echo ## 注意事项 >> release\AugmentCode-Free-windows\使用说明.txt
+        echo - 程序会自动备份原始文件 >> release\AugmentCode-Free-windows\使用说明.txt
+        echo - 请确保VS Code已关闭再运行此工具 >> release\AugmentCode-Free-windows\使用说明.txt
+        echo - 如遇问题，可查看备份文件进行恢复 >> release\AugmentCode-Free-windows\使用说明.txt
+
+    - name: Create ZIP archive
+      run: |
+        cd release
+        powershell Compress-Archive -Path AugmentCode-Free-windows -DestinationPath AugmentCode-Free-windows.zip
+
+    - name: Upload Windows artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: AugmentCode-Free-windows
+        path: release/AugmentCode-Free-windows
+
+    - name: Upload Windows ZIP
+      uses: actions/upload-artifact@v3
+      with:
+        name: AugmentCode-Free-windows-zip
+        path: release/AugmentCode-Free-windows.zip
+
+    - name: Get current date
+      if: ${{ github.event.inputs.create_release == 'true' }}
+      id: date
+      run: echo "date=$(Get-Date -Format 'yyyy-MM-dd-HH-mm')" >> $env:GITHUB_OUTPUT
+
+    - name: Create Release
+      if: ${{ github.event.inputs.create_release == 'true' }}
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: windows-build-${{ steps.date.outputs.date }}
+        name: Windows Build ${{ steps.date.outputs.date }}
+        files: release/AugmentCode-Free-windows.zip
+        draft: false
+        prerelease: false
+        body: |
+          ## Windows 版本自动构建
+          
+          构建时间: ${{ steps.date.outputs.date }}
+          
+          ### 使用方法
+          1. 下载 `AugmentCode-Free-windows.zip`
+          2. 解压到任意目录
+          3. 双击 `AugmentCode-Free.exe` 运行
+          
+          ### 功能
+          - 清理VS Code数据库中的augment相关条目
+          - 修改VS Code遥测ID
+          - 提供图形界面操作
+          
+          ### 注意事项
+          - 运行前请关闭VS Code
+          - 程序会自动备份原始文件
+          - 支持Windows 10/11
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
