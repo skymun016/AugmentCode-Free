@@ -11,50 +11,70 @@ import subprocess
 import shutil
 from pathlib import Path
 
+# 修复Windows控制台编码问题
+if platform.system() == "Windows":
+    import locale
+    try:
+        # 尝试设置UTF-8编码
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except:
+        # 如果失败，使用系统默认编码
+        pass
+
+def safe_print(text):
+    """安全打印函数，处理编码问题"""
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        # 如果遇到编码错误，移除特殊字符
+        safe_text = text.encode('ascii', 'ignore').decode('ascii')
+        print(safe_text)
+
 def check_pyinstaller():
     """检查PyInstaller是否已安装"""
     try:
         import PyInstaller
-        print("✅ PyInstaller 已安装")
+        safe_print("✅ PyInstaller 已安装")
         return True
     except ImportError:
-        print("❌ PyInstaller 未安装")
-        print("正在安装 PyInstaller...")
+        safe_print("❌ PyInstaller 未安装")
+        safe_print("正在安装 PyInstaller...")
         try:
             subprocess.check_call([sys.executable, "-m", "pip", "install", "pyinstaller>=5.0.0"])
-            print("✅ PyInstaller 安装成功")
+            safe_print("✅ PyInstaller 安装成功")
             return True
         except subprocess.CalledProcessError:
-            print("❌ PyInstaller 安装失败")
+            safe_print("❌ PyInstaller 安装失败")
             return False
 
 def install_dependencies():
     """安装项目依赖"""
-    print("正在安装项目依赖...")
+    safe_print("正在安装项目依赖...")
     try:
         # 首先尝试正常安装
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "build_requirements.txt"])
-        print("✅ 依赖安装成功")
+        safe_print("✅ 依赖安装成功")
         return True
     except subprocess.CalledProcessError:
-        print("⚠️  正常安装失败，尝试使用 --user 参数...")
+        safe_print("⚠️  正常安装失败，尝试使用 --user 参数...")
         try:
             subprocess.check_call([sys.executable, "-m", "pip", "install", "--user", "-r", "build_requirements.txt"])
-            print("✅ 依赖安装成功（用户模式）")
+            safe_print("✅ 依赖安装成功（用户模式）")
             return True
         except subprocess.CalledProcessError:
-            print("⚠️  用户模式安装失败，尝试使用 --break-system-packages 参数...")
+            safe_print("⚠️  用户模式安装失败，尝试使用 --break-system-packages 参数...")
             try:
                 subprocess.check_call([sys.executable, "-m", "pip", "install", "--break-system-packages", "-r", "build_requirements.txt"])
-                print("✅ 依赖安装成功（系统包模式）")
+                safe_print("✅ 依赖安装成功（系统包模式）")
                 return True
             except subprocess.CalledProcessError:
-                print("❌ 所有安装方式都失败了")
-                print("💡 建议手动创建虚拟环境：")
-                print("   python3 -m venv venv")
-                print("   source venv/bin/activate")
-                print("   pip install -r build_requirements.txt")
-                print("   python build.py")
+                safe_print("❌ 所有安装方式都失败了")
+                safe_print("💡 建议手动创建虚拟环境：")
+                safe_print("   python3 -m venv venv")
+                safe_print("   source venv/bin/activate")
+                safe_print("   pip install -r build_requirements.txt")
+                safe_print("   python build.py")
                 return False
 
 def create_spec_file():
@@ -171,20 +191,20 @@ app = BUNDLE(
     with open("AugmentCode-Free.spec", "w", encoding="utf-8") as f:
         f.write(spec_content)
     
-    print("✅ Spec文件创建成功")
+    safe_print("✅ Spec文件创建成功")
 
 def build_executable():
     """构建可执行文件"""
-    print("开始构建可执行文件...")
-    
+    safe_print("开始构建可执行文件...")
+
     try:
         # 使用spec文件构建
         cmd = [sys.executable, "-m", "PyInstaller", "--clean", "AugmentCode-Free.spec"]
         subprocess.check_call(cmd)
-        print("✅ 构建成功")
+        safe_print("✅ 构建成功")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"❌ 构建失败: {e}")
+        safe_print(f"❌ 构建失败: {e}")
         return False
 
 def create_dist_package():
@@ -193,7 +213,7 @@ def create_dist_package():
     dist_dir = Path("dist")
     
     if not dist_dir.exists():
-        print("❌ dist目录不存在")
+        safe_print("❌ dist目录不存在")
         return False
     
     # 创建最终的分发目录
@@ -270,20 +290,20 @@ def create_dist_package():
     with open(package_dir / "使用说明.txt", "w", encoding="utf-8") as f:
         f.write(usage_content)
     
-    print(f"✅ 分发包创建成功: {package_dir}")
+    safe_print(f"✅ 分发包创建成功: {package_dir}")
     return True
 
 def main():
     """主函数"""
-    print("=" * 60)
-    print("🚀 AugmentCode-Free 打包工具")
-    print("=" * 60)
-    print()
-    
+    safe_print("=" * 60)
+    safe_print("🚀 AugmentCode-Free 打包工具")
+    safe_print("=" * 60)
+    safe_print("")
+
     current_os = platform.system()
-    print(f"当前操作系统: {current_os}")
-    print(f"Python版本: {sys.version}")
-    print()
+    safe_print(f"当前操作系统: {current_os}")
+    safe_print(f"Python版本: {sys.version}")
+    safe_print("")
     
     # 检查并安装依赖
     if not install_dependencies():
@@ -303,16 +323,16 @@ def main():
     if not create_dist_package():
         sys.exit(1)
     
-    print()
-    print("=" * 60)
-    print("🎉 打包完成！")
-    print("=" * 60)
-    print()
-    print("生成的文件:")
-    print(f"- 可执行文件: dist/AugmentCode-Free{'(.exe)' if current_os == 'Windows' else '(.app)' if current_os == 'Darwin' else ''}")
-    print(f"- 分发包: AugmentCode-Free-{current_os.lower()}/")
-    print()
-    print("你可以将分发包目录打包为zip文件进行分发。")
+    safe_print("")
+    safe_print("=" * 60)
+    safe_print("🎉 打包完成！")
+    safe_print("=" * 60)
+    safe_print("")
+    safe_print("生成的文件:")
+    safe_print(f"- 可执行文件: dist/AugmentCode-Free{'(.exe)' if current_os == 'Windows' else '(.app)' if current_os == 'Darwin' else ''}")
+    safe_print(f"- 分发包: AugmentCode-Free-{current_os.lower()}/")
+    safe_print("")
+    safe_print("你可以将分发包目录打包为zip文件进行分发。")
 
 if __name__ == "__main__":
     main()

@@ -11,21 +11,41 @@ import subprocess
 import shutil
 from pathlib import Path
 
+# 修复Windows控制台编码问题
+if platform.system() == "Windows":
+    import locale
+    try:
+        # 尝试设置UTF-8编码
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except:
+        # 如果失败，使用系统默认编码
+        pass
+
+def safe_print(text):
+    """安全打印函数，处理编码问题"""
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        # 如果遇到编码错误，移除特殊字符
+        safe_text = text.encode('ascii', 'ignore').decode('ascii')
+        print(safe_text)
+
 def create_virtual_environment():
     """创建虚拟环境"""
     venv_path = Path("build_venv")
     
     if venv_path.exists():
-        print("🔄 删除现有虚拟环境...")
+        safe_print("🔄 删除现有虚拟环境...")
         shutil.rmtree(venv_path)
-    
-    print("📦 创建虚拟环境...")
+
+    safe_print("📦 创建虚拟环境...")
     try:
         subprocess.check_call([sys.executable, "-m", "venv", str(venv_path)])
-        print("✅ 虚拟环境创建成功")
+        safe_print("✅ 虚拟环境创建成功")
         return venv_path
     except subprocess.CalledProcessError:
-        print("❌ 虚拟环境创建失败")
+        safe_print("❌ 虚拟环境创建失败")
         return None
 
 def get_venv_python(venv_path):
