@@ -18,7 +18,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
 
@@ -66,13 +66,13 @@ jobs:
         powershell Compress-Archive -Path AugmentCode-Free-windows -DestinationPath AugmentCode-Free-windows.zip
 
     - name: Upload Windows artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: AugmentCode-Free-windows
         path: release/AugmentCode-Free-windows
 
     - name: Upload Windows ZIP
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: AugmentCode-Free-windows-zip
         path: release/AugmentCode-Free-windows.zip
